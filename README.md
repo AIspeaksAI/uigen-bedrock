@@ -2,6 +2,8 @@
 
 AI-powered React component generator with live preview.
 
+> This is a sample application used in the [Claude Code in Action](https://anthropic.skilljar.com/claude-code-in-action) training by Anthropic.
+
 ## Prerequisites
 
 - Node.js 18+
