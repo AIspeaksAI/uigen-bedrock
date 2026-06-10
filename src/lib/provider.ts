@@ -1,11 +1,16 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import {
   LanguageModelV1,
   LanguageModelV1StreamPart,
   LanguageModelV1Message,
 } from "@ai-sdk/provider";
 
-const MODEL = "claude-haiku-4-5";
+// Claude is served through an Amazon Bedrock-backed, Anthropic-compatible
+// gateway (the same ANTHROPIC_* convention Claude Code uses), so the model id
+// here is the Anthropic model name exposed by that gateway.
+const MODEL = process.env.ANTHROPIC_MODEL?.trim() || "claude-haiku-4-5";
+
+const AUTH_TOKEN_PLACEHOLDER = "your-auth-token-here";
 
 export class MockLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = "v1" as const;
@@ -507,16 +512,32 @@ export default function App() {
 }
 
 export function getLanguageModel() {
-  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  const authToken = process.env.ANTHROPIC_AUTH_TOKEN?.trim();
+  // Prefer the explicit Anthropic-compatible endpoint; fall back to the
+  // Bedrock-specific base URL if that is the only one configured.
+  const baseURL =
+    process.env.ANTHROPIC_BASE_URL?.trim() ||
+    process.env.ANTHROPIC_BEDROCK_BASE_URL?.trim();
 
-  if (!apiKey || apiKey === "your-api-key-here") {
+  if (!authToken || authToken === AUTH_TOKEN_PLACEHOLDER) {
     console.log(
-      "ANTHROPIC_API_KEY is not set (or is still the placeholder). " +
+      "ANTHROPIC_AUTH_TOKEN is not set (or is still the placeholder). " +
         "Using the mock provider — responses will be canned. " +
-        "Set a real key in .env to generate components with Claude."
+        "Set your Bedrock gateway credentials in .env to generate components " +
+        "with Claude through Amazon Bedrock."
     );
     return new MockLanguageModel("mock-" + MODEL);
   }
+
+  const anthropic = createAnthropic({
+    // The SDK requires an apiKey; the gateway authenticates via the bearer
+    // token below, but we also send it as x-api-key for broader compatibility.
+    apiKey: authToken,
+    ...(baseURL ? { baseURL } : {}),
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+    },
+  });
 
   return anthropic(MODEL);
 }

@@ -4,3 +4,7 @@ CLAUDE.local.md
 node_modules/
 .next/
 prisma/dev.db
+
+# build artifacts
+next-env.d.ts
+*.tsbuildinfo

@@ -30,7 +30,8 @@ export async function POST(req: Request) {
 
   const model = getLanguageModel();
   // Use fewer steps for mock provider to prevent repetition
-  const isMockProvider = !process.env.ANTHROPIC_API_KEY;
+  const authToken = process.env.ANTHROPIC_AUTH_TOKEN?.trim();
+  const isMockProvider = !authToken || authToken === "your-auth-token-here";
   const result = streamText({
     model,
     messages,
