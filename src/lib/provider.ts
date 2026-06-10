@@ -6,9 +6,10 @@ import {
 } from "@ai-sdk/provider";
 
 // Claude is served through an Amazon Bedrock-backed, Anthropic-compatible
-// gateway (the same ANTHROPIC_* convention Claude Code uses), so the model id
-// here is the Anthropic model name exposed by that gateway.
-const MODEL = process.env.ANTHROPIC_MODEL?.trim() || "claude-haiku-4-5";
+// gateway (the same ANTHROPIC_* convention Claude Code uses). The model id must
+// match an id exposed by the gateway (see `GET /v1/models`); the bare
+// "claude-haiku-4-5" alias is not accepted, so default to the dated id.
+const MODEL = process.env.ANTHROPIC_MODEL?.trim() || "claude-haiku-4-5-20251001";
 
 const AUTH_TOKEN_PLACEHOLDER = "your-auth-token-here";
 
@@ -513,11 +514,14 @@ export default function App() {
 
 export function getLanguageModel() {
   const authToken = process.env.ANTHROPIC_AUTH_TOKEN?.trim();
-  // Prefer the explicit Anthropic-compatible endpoint; fall back to the
-  // Bedrock-specific base URL if that is the only one configured.
-  const baseURL =
-    process.env.ANTHROPIC_BASE_URL?.trim() ||
-    process.env.ANTHROPIC_BEDROCK_BASE_URL?.trim();
+  // The AI SDK Anthropic provider issues requests to `${baseURL}/messages`, so
+  // the base URL must include the `/v1` segment (the gateway exposes the
+  // Anthropic Messages API at `/v1/messages`). Claude Code-style configs point
+  // ANTHROPIC_BASE_URL at the gateway root, so normalize to exactly one `/v1`.
+  const rawBaseURL = process.env.ANTHROPIC_BASE_URL?.trim();
+  const baseURL = rawBaseURL
+    ? rawBaseURL.replace(/\/+$/, "").replace(/\/v1$/, "") + "/v1"
+    : undefined;
 
   if (!authToken || authToken === AUTH_TOKEN_PLACEHOLDER) {
     console.log(

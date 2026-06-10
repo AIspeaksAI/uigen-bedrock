@@ -8,3 +8,6 @@ prisma/dev.db
 # build artifacts
 next-env.d.ts
 *.tsbuildinfo
+
+# dev server logs (may capture request/response data)
+logs.txt

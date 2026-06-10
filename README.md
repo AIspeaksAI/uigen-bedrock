@@ -19,17 +19,35 @@ AI-powered React component generator with live preview.
    cp .env.example .env
    ```
 
-   b. Fill in your gateway values in `.env`:
+   b. Fill in your gateway values in `.env` (use the same values as your Claude Code config):
 
    ```
    ANTHROPIC_AUTH_TOKEN=<your bearer token>
-   ANTHROPIC_BASE_URL=https://your-gateway.example.com/v1
-   ANTHROPIC_BEDROCK_BASE_URL=https://your-bedrock-gateway.example.com
+   ANTHROPIC_BASE_URL=https://your-gateway.example.com
+   ANTHROPIC_BEDROCK_BASE_URL=https://your-gateway.example.com/bedrock
    ```
 
    - `ANTHROPIC_AUTH_TOKEN` is the bearer token used to authenticate with the gateway. If it is missing or left as the placeholder, the app uses the mock provider.
-   - `ANTHROPIC_BASE_URL` must point at the Anthropic Messages API root, typically ending in `/v1`. If only `ANTHROPIC_BEDROCK_BASE_URL` is set, it is used as a fallback automatically.
-   - Optionally set `ANTHROPIC_MODEL` to override the default model name (`claude-haiku-4-5`) if your gateway exposes it under a different id.
+   - `ANTHROPIC_BASE_URL` is the gateway **root** (no path). The app appends `/v1` automatically and calls the Anthropic Messages API at `/v1/messages`.
+   - `ANTHROPIC_BEDROCK_BASE_URL` is kept for reference; the current provider talks to the Anthropic-compatible `/v1` endpoint (which the gateway serves via Bedrock).
+   - The default model id is `claude-haiku-4-5-20251001`. Set `ANTHROPIC_MODEL` to override it; it must match an id returned by `GET /v1/models` on your gateway.
+
+   c. **Corporate CA / TLS:** if your gateway uses a corporate certificate, Node must trust it. Set `NODE_EXTRA_CA_CERTS` (in your shell, **not** `.env` — it must exist before Node starts) to your CA bundle when running the app:
+
+   ```bash
+   export NODE_EXTRA_CA_CERTS=/path/to/corporate-ca-bundle.pem
+   ```
+
+   You can verify connectivity directly before starting the app:
+
+   ```bash
+   curl --cacert "$NODE_EXTRA_CA_CERTS" \
+     -X POST "$ANTHROPIC_BASE_URL/v1/messages" \
+     -H "Authorization: Bearer $ANTHROPIC_AUTH_TOKEN" \
+     -H "anthropic-version: 2023-06-01" \
+     -H "content-type: application/json" \
+     -d '{"model":"claude-haiku-4-5-20251001","max_tokens":16,"messages":[{"role":"user","content":"ping"}]}'
+   ```
 
 2. Install dependencies and initialize the database:
 
@@ -51,6 +69,12 @@ This command will:
 
 ```bash
 npm run dev
+```
+
+If your gateway uses a corporate CA, start the server so Node trusts it:
+
+```bash
+NODE_EXTRA_CA_CERTS=/path/to/corporate-ca-bundle.pem npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
